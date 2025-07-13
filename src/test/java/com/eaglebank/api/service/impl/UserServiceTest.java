@@ -2,7 +2,9 @@ package com.eaglebank.api.service.impl;
 
 import com.eaglebank.api.dto.User.CreateUserRequest;
 import com.eaglebank.api.dto.User.UpdateUserRequest;
+import com.eaglebank.api.model.User.Address;
 import com.eaglebank.api.model.User.User;
+import com.eaglebank.api.repository.AccountRepository;
 import com.eaglebank.api.repository.UserRepository;
 import com.eaglebank.api.service.Impl.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +28,9 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AccountRepository accountRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -55,11 +60,17 @@ class UserServiceTest {
     @Test
     void createUser_shouldSaveAndReturnUser() {
         // Arrange
+        Address address = Address.builder()
+                .line1("123 Fake Street")
+                .city("Springfield")
+                .postcode("12345")
+                .country("United States of America")
+                .build();
         var request = new CreateUserRequest();
         request.setName("New User");
         request.setEmail("new@example.com");
         request.setPassword("password123");
-        request.setAddress("123 Main St");
+        request.setAddress(address);
         request.setPhoneNumber("555-0100");
 
         when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
@@ -74,7 +85,7 @@ class UserServiceTest {
         assertEquals("New User", createdUser.getName());
         assertEquals("new@example.com", createdUser.getEmail());
         assertEquals("encodedPassword", createdUser.getPassword());
-        assertEquals("123 Main St", createdUser.getAddress());
+        assertEquals(address, createdUser.getAddress());
         assertEquals("555-0100", createdUser.getPhoneNumber());
 
         verify(passwordEncoder).encode("password123");

@@ -50,10 +50,15 @@ class MappersTest {
     @Test
     void transactionMapper_shouldConvertToResponse() {
         // Arrange
+        User user = new User();
+        user.setId("12345");
+        Account account = new Account();
+        account.setUser(user);
         var transaction = new Transaction();
         transaction.setId("tx-1");
-        transaction.setType(TransactionType.CREDIT);
+        transaction.setType(TransactionType.WITHDRAWAL);
         transaction.setAmount(new BigDecimal("100.50"));
+        transaction.setAccount(account);
         transaction.setCreatedTimestamp(Instant.now());
         var mapper = new TransactionMapper(); // No dependencies
 
@@ -62,7 +67,7 @@ class MappersTest {
 
         // Assert
         assertThat(response.getId()).isEqualTo("tx-1");
-        assertThat(response.getType()).isEqualTo(TransactionType.CREDIT);
+        assertThat(response.getType()).isEqualTo(TransactionType.WITHDRAWAL);
         assertThat(response.getAmount()).isEqualByComparingTo("100.50");
         assertThat(response.getCreatedTimestamp()).isEqualTo(transaction.getCreatedTimestamp());
     }

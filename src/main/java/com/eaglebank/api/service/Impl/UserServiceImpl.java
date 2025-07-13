@@ -3,9 +3,11 @@ package com.eaglebank.api.service.Impl;
 import com.eaglebank.api.dto.User.CreateUserRequest;
 import com.eaglebank.api.dto.User.UpdateUserRequest;
 import com.eaglebank.api.model.User.User;
+import com.eaglebank.api.repository.AccountRepository;
 import com.eaglebank.api.repository.UserRepository;
 import com.eaglebank.api.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +22,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AccountRepository accountRepository;
 
     @Override
     public User createUser(CreateUserRequest request) {
@@ -60,7 +63,7 @@ public class UserServiceImpl implements UserService {
         if (StringUtils.hasText(request.getEmail())) {
             user.setEmail(request.getEmail());
         }
-        if (StringUtils.hasText(request.getAddress())) {
+        if (request.getAddress() != null) {
             user.setAddress(request.getAddress());
         }
         if (StringUtils.hasText(request.getPhoneNumber())) {
@@ -77,6 +80,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean deleteUser(String userId, UserDetails details) {
         User user = findUserById(userId, details);
+        if (!accountRepository.findByUser(user).isEmpty()) {
+            throw new DataIntegrityViolationException("User still has accounts, user cannot be deleted");
+        }
         userRepository.delete(user);
         return userRepository.findById(userId).isEmpty();
     }

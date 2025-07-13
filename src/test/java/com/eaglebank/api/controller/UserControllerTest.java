@@ -4,6 +4,7 @@ import com.eaglebank.api.dto.User.CreateUserRequest;
 import com.eaglebank.api.dto.User.UpdateUserRequest;
 import com.eaglebank.api.dto.User.UserResponse;
 import com.eaglebank.api.mapper.UserMapper;
+import com.eaglebank.api.model.User.Address;
 import com.eaglebank.api.model.User.User;
 import com.eaglebank.api.security.JwtService;
 import com.eaglebank.api.service.UserService;
@@ -62,7 +63,13 @@ class UserControllerTest {
         testUser.setId("usr-123");
         testUser.setName("Test User");
         testUser.setEmail("test@example.com");
-        testUser.setAddress("123 Test St");
+        testUser.setAddress(Address.builder()
+                .line1("123 Fake Street")
+                .city("Springfield")
+                .postcode("12345")
+                .country("United States of America")
+                .build()
+        );
         testUser.setPhoneNumber("+15551234567");
         testUser.setCreatedTimestamp(Instant.now());
         testUser.setUpdatedTimestamp(Instant.now());

@@ -23,7 +23,8 @@ public class User implements UserDetails {
     private String email;
     // should be transient in a real world scenario
     private String password;
-    private String address;
+    @Embedded
+    private Address address;
     private String phoneNumber;
 
     @CreationTimestamp
