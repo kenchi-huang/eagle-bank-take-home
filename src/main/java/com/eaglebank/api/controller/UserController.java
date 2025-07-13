@@ -13,8 +13,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.MissingResourceException;
-
 @RestController
 @RequestMapping("/v1/users")
 @RequiredArgsConstructor
@@ -34,12 +32,8 @@ public class UserController {
             @PathVariable String userId,
             @AuthenticationPrincipal UserDetails currentUser
     ) {
-        try {
-            User user = userService.findUserById(userId, currentUser);
-            return ResponseEntity.ok(userMapper.toResponse(user));
-        } catch (MissingResourceException e) {
-            return ResponseEntity.notFound().build();
-        }
+        User user = userService.findUserById(userId, currentUser);
+        return ResponseEntity.ok(userMapper.toResponse(user));
     }
 
     @PatchMapping("{userId}")
@@ -48,13 +42,8 @@ public class UserController {
             @RequestBody UpdateUserRequest request,
             @AuthenticationPrincipal UserDetails currentUser
     ) {
-        try {
-            User user = userService.updateUserById(userId, request, currentUser);
-            return ResponseEntity.ok(userMapper.toResponse(user));
-        } catch (MissingResourceException e) {
-            return ResponseEntity.notFound().build();
-        }
-
+        User user = userService.updateUserById(userId, request, currentUser);
+        return ResponseEntity.ok(userMapper.toResponse(user));
     }
 
     @DeleteMapping("{userId}")

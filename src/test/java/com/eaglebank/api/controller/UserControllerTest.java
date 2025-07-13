@@ -9,6 +9,7 @@ import com.eaglebank.api.security.JwtService;
 import com.eaglebank.api.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -80,29 +81,29 @@ class UserControllerTest {
         });
     }
 
-//    FAILING BECAUSE CSRF TOKEN IS AUTOMATICALLY ADDED TO REQUEST
-//    @Test
-//    void createUser_shouldReturn201AndUserResponse() throws Exception {
-//        // Arrange
-//        var request = new CreateUserRequest();
-//        request.setName("New User");
-//        request.setEmail("new@example.com");
-//        request.setPassword("password");
-//
-//        // Use an argument matcher for robustness
-//        when(userService.createUser(any(CreateUserRequest.class))).thenReturn(testUser);
-//
-//        // Act & Assert
-//        mockMvc.perform(post("/v1/users")
-//                        .with(csrf().useInvalidToken())
-//                        .with(anonymous()) // <-- FIX: Process the request as an anonymous user
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(objectMapper.writeValueAsString(request)))
-//                .andExpect(status().isCreated())
-//                .andExpect(jsonPath("$.id").value("usr-123"))
-//                .andExpect(jsonPath("$.name").value("Test User"))
-//                .andExpect(jsonPath("$.email").value("test@example.com"));
-//    }
+    @Disabled("CSRF token is automatically added in despite SecurityConfig disabling csrf validation")
+    @Test
+    void createUser_shouldReturn201AndUserResponse() throws Exception {
+        // Arrange
+        var request = new CreateUserRequest();
+        request.setName("New User");
+        request.setEmail("new@example.com");
+        request.setPassword("password");
+
+        // Use an argument matcher for robustness
+        when(userService.createUser(any(CreateUserRequest.class))).thenReturn(testUser);
+
+        // Act & Assert
+        mockMvc.perform(post("/v1/users")
+                        .with(csrf().useInvalidToken())
+                        .with(anonymous()) // <-- FIX: Process the request as an anonymous user
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value("usr-123"))
+                .andExpect(jsonPath("$.name").value("Test User"))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
+    }
 
     @Test
     @WithMockUser(username = "test@example.com")

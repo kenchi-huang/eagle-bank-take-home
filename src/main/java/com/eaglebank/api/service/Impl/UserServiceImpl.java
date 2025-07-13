@@ -39,12 +39,11 @@ public class UserServiceImpl implements UserService {
         User requestedUser = userRepository.findById(userId)
                 .orElseThrow(() -> new MissingResourceException("User not found", "User", userId));
 
-        // THE AUTHORIZATION CHECK:
         // Compare the email from the token (currentUser.getUsername())
         // with the email of the user record from the database.
         if (!requestedUser.getEmail().equals(currentUser.getUsername())) {
-            // If they don't match, the user is not authorized.
-            throw new AccessDeniedException("You are not authorized to access this resource.");
+            // If they don't match, the user is not authorised.
+            throw new AccessDeniedException("You are not authorised to access this resource.");
         }
 
         // If the check passes, return the user
