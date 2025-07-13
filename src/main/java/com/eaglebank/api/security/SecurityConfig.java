@@ -31,10 +31,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable) // Correct for stateless APIs
+                .httpBasic(AbstractHttpConfigurer::disable) // SUGGESTION: Explicitly disable
+                .formLogin(AbstractHttpConfigurer::disable) // SUGGESTION: Explicitly disable
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v1/auth/token", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/v1/user").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/users").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

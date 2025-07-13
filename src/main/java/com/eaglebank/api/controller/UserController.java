@@ -13,8 +13,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.MissingResourceException;
+
 @RestController
-@RequestMapping("/v1/user")
+@RequestMapping("/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -32,8 +34,12 @@ public class UserController {
             @PathVariable String userId,
             @AuthenticationPrincipal UserDetails currentUser
     ) {
-        User user = userService.findUserById(userId, currentUser);
-        return ResponseEntity.ok(userMapper.toResponse(user));
+        try {
+            User user = userService.findUserById(userId, currentUser);
+            return ResponseEntity.ok(userMapper.toResponse(user));
+        } catch (MissingResourceException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PatchMapping("{userId}")
@@ -42,16 +48,22 @@ public class UserController {
             @RequestBody UpdateUserRequest request,
             @AuthenticationPrincipal UserDetails currentUser
     ) {
-        User user = userService.updateUserById(userId, request, currentUser);
-        return ResponseEntity.ok(userMapper.toResponse(user));
+        try {
+            User user = userService.updateUserById(userId, request, currentUser);
+            return ResponseEntity.ok(userMapper.toResponse(user));
+        } catch (MissingResourceException e) {
+            return ResponseEntity.notFound().build();
+        }
+
     }
 
     @DeleteMapping("{userId}")
-    public ResponseEntity<Boolean> deleteUser(
+    public ResponseEntity<Void> deleteUser(
             @PathVariable String userId,
             @AuthenticationPrincipal UserDetails currentUser
     ) {
-        return ResponseEntity.ok(userService.deleteUser(userId, currentUser));
+        userService.deleteUser(userId, currentUser);
+        return ResponseEntity.noContent().build();
     }
 
 }

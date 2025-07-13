@@ -15,6 +15,7 @@ public class UserMapper {
                 .id(user.getId())
                 .name(user.getName())
                 .address(user.getAddress())
+                .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
                 .created(user.getCreatedTimestamp())
                 .lastUpdated(user.getUpdatedTimestamp())
