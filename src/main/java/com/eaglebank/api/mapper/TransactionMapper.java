@@ -1,5 +1,6 @@
 package com.eaglebank.api.mapper;
 
+import com.eaglebank.api.dto.Transaction.ListTransactionsResponse;
 import com.eaglebank.api.dto.Transaction.TransactionResponse;
 import com.eaglebank.api.model.Transaction.Transaction;
 import lombok.RequiredArgsConstructor;
@@ -19,17 +20,21 @@ public class TransactionMapper {
 
         return TransactionResponse.builder()
                 .id(transaction.getId())
+                .userId(transaction.getAccount().getUser().getId())
                 .type(transaction.getType())
                 .amount(transaction.getAmount())
                 .createdTimestamp(transaction.getCreatedTimestamp())
-                .description(transaction.getDescription())
+                .reference(transaction.getDescription())
                 .currency(transaction.getCurrency())
                 .build();
     }
 
-    public List<TransactionResponse> toResponseList(List<Transaction> transactions) {
-        return transactions.stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public ListTransactionsResponse toResponseList(List<Transaction> transactions) {
+        return ListTransactionsResponse.builder()
+                .transactions(
+                        transactions.stream()
+                            .map(this::toResponse)
+                            .collect(Collectors.toList()))
+                .build();
     }
 }

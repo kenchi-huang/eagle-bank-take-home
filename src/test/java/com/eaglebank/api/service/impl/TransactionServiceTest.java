@@ -1,8 +1,10 @@
 package com.eaglebank.api.service.impl;
 
 import com.eaglebank.api.dto.Transaction.CreateTransactionRequest;
+import com.eaglebank.api.exception.InsufficientFundsException;
 import com.eaglebank.api.model.Account.Account;
 import com.eaglebank.api.model.Transaction.Transaction;
+import com.eaglebank.api.model.Transaction.TransactionType;
 import com.eaglebank.api.repository.AccountRepository;
 import com.eaglebank.api.repository.TransactionRepository;
 import com.eaglebank.api.service.AccountService;
@@ -18,8 +20,6 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
-import java.util.MissingResourceException;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,8 +39,7 @@ class TransactionServiceTest {
     @InjectMocks
     private TransactionServiceImpl transactionService;
 
-    private Account fromAccount;
-    private Account toAccount;
+    private Account testAccount;
     private UserDetails currentUserDetails;
 
     @BeforeEach
@@ -51,107 +50,99 @@ class TransactionServiceTest {
                 .roles("USER")
                 .build();
 
-        fromAccount = new Account();
-        fromAccount.setAccountNumber("1111");
-        fromAccount.setBalance(new BigDecimal("1000.00"));
-        fromAccount.setCurrency("GBP");
-
-        toAccount = new Account();
-        toAccount.setAccountNumber("2222");
-        toAccount.setBalance(new BigDecimal("500.00"));
-        toAccount.setCurrency("GBP");
+        testAccount = new Account();
+        testAccount.setAccountNumber("12345678");
+        testAccount.setBalance(new BigDecimal("500.00"));
+        testAccount.setCurrency("GBP");
     }
 
     @Test
-    void createTransaction_shouldSucceed_whenFundsAreSufficient() {
+    void createTransaction_shouldSucceed_forDeposit() throws InsufficientFundsException {
         // Arrange
         var request = new CreateTransactionRequest();
-        request.setToAccountNumber("2222");
-        request.setAmount(new BigDecimal("100.00"));
-        request.setDescription("Payment for services");
+        request.setType("deposit");
+        request.setAmount(new BigDecimal("150.50"));
+        request.setCurrency("GBP");
+        request.setReference("Cash deposit");
 
-        // Mock the authorization and account retrieval
-        when(accountService.getAccountByAccountNumber("1111", currentUserDetails)).thenReturn(fromAccount);
-        when(accountRepository.findByAccountNumber("2222")).thenReturn(Optional.of(toAccount));
+        when(accountService.getAccountByAccountNumber("12345678", currentUserDetails)).thenReturn(testAccount);
 
         // Act
-        transactionService.createTransaction("1111", request, currentUserDetails);
+        transactionService.createTransaction("12345678", request, currentUserDetails);
 
         // Assert
-        // 1. Verify balances are updated correctly
-        assertThat(fromAccount.getBalance()).isEqualByComparingTo("900.00");
-        assertThat(toAccount.getBalance()).isEqualByComparingTo("600.00");
+        // 1. Verify balance was increased
+        assertThat(testAccount.getBalance()).isEqualByComparingTo("650.50");
 
-        // 2. Capture the two transaction records that should have been saved
+        // 2. Capture and verify the transaction record
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepository, times(2)).save(transactionCaptor.capture());
-        verify(accountRepository, times(2)).save(any(Account.class));
+        verify(transactionRepository).save(transactionCaptor.capture());
+        verify(accountRepository).save(testAccount); // Verify the account was saved
 
-        Transaction debit = transactionCaptor.getAllValues().get(0);
-        Transaction credit = transactionCaptor.getAllValues().get(1);
-
-        // 3. Verify the DEBIT transaction
-        assertThat(debit.getAccount().getAccountNumber()).isEqualTo("1111");
-        assertThat(debit.getType()).isEqualTo(com.eaglebank.api.model.Transaction.TransactionType.DEBIT);
-        assertThat(debit.getAmount()).isEqualByComparingTo("100.00");
-        assertThat(debit.getDescription()).isEqualTo("Transfer to: 2222");
-
-        // 4. Verify the CREDIT transaction
-        assertThat(credit.getAccount().getAccountNumber()).isEqualTo("2222");
-        assertThat(credit.getType()).isEqualTo(com.eaglebank.api.model.Transaction.TransactionType.CREDIT);
-        assertThat(credit.getAmount()).isEqualByComparingTo("100.00");
-        assertThat(credit.getDescription()).isEqualTo("Transfer from: 1111");
+        Transaction savedTransaction = transactionCaptor.getValue();
+        assertThat(savedTransaction.getType()).isEqualTo(TransactionType.DEPOSIT);
+        assertThat(savedTransaction.getAmount()).isEqualByComparingTo("150.50");
+        assertThat(savedTransaction.getDescription()).isEqualTo("Cash deposit");
     }
 
     @Test
-    void createTransaction_shouldFail_whenFundsAreInsufficient() {
+    void createTransaction_shouldSucceed_forWithdrawalWhenFundsAreSufficient() throws InsufficientFundsException {
         // Arrange
         var request = new CreateTransactionRequest();
-        request.setToAccountNumber("2222");
-        request.setAmount(new BigDecimal("2000.00")); // More than the balance
+        request.setType("withdrawal");
+        request.setAmount(new BigDecimal("100.00"));
+        request.setCurrency("GBP");
 
-        when(accountService.getAccountByAccountNumber("1111", currentUserDetails)).thenReturn(fromAccount);
-        when(accountRepository.findByAccountNumber("2222")).thenReturn(Optional.of(toAccount));
+        when(accountService.getAccountByAccountNumber("12345678", currentUserDetails)).thenReturn(testAccount);
+
+        // Act
+        transactionService.createTransaction("12345678", request, currentUserDetails);
+
+        // Assert
+        // 1. Verify balance was decreased
+        assertThat(testAccount.getBalance()).isEqualByComparingTo("400.00");
+
+        // 2. Capture and verify the transaction record
+        ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(transactionCaptor.capture());
+        verify(accountRepository).save(testAccount);
+
+        Transaction savedTransaction = transactionCaptor.getValue();
+        assertThat(savedTransaction.getType()).isEqualTo(TransactionType.WITHDRAWAL);
+        assertThat(savedTransaction.getAmount()).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void createTransaction_shouldFail_forWithdrawalWithInsufficientFunds() {
+        // Arrange
+        var request = new CreateTransactionRequest();
+        request.setType("withdrawal");
+        request.setAmount(new BigDecimal("1000.00")); // More than the balance
+
+        when(accountService.getAccountByAccountNumber("12345678", currentUserDetails)).thenReturn(testAccount);
 
         // Act & Assert
-        assertThrows(IllegalStateException.class, () -> {
-            transactionService.createTransaction("1111", request, currentUserDetails);
-        }, "Insufficient funds for this transaction.");
+        assertThrows(InsufficientFundsException.class, () -> {
+            transactionService.createTransaction("12345678", request, currentUserDetails);
+        }, "Insufficient funds for this withdrawal.");
 
-        // Verify no interactions that would change state occurred
+        // Verify no state-changing methods were called
         verify(transactionRepository, never()).save(any());
         verify(accountRepository, never()).save(any());
     }
 
     @Test
-    void createTransaction_shouldFail_whenDestinationAccountNotFound() {
+    void createTransaction_shouldFail_forInvalidTransactionType() {
         // Arrange
         var request = new CreateTransactionRequest();
-        request.setToAccountNumber("9999"); // Non-existent account
+        request.setType("transfer"); // Invalid type
         request.setAmount(new BigDecimal("50.00"));
 
-        when(accountService.getAccountByAccountNumber("1111", currentUserDetails)).thenReturn(fromAccount);
-        when(accountRepository.findByAccountNumber("9999")).thenReturn(Optional.empty());
+        when(accountService.getAccountByAccountNumber("12345678", currentUserDetails)).thenReturn(testAccount);
 
         // Act & Assert
-        assertThrows(MissingResourceException.class, () -> {
-            transactionService.createTransaction("1111", request, currentUserDetails);
+        assertThrows(IllegalArgumentException.class, () -> {
+            transactionService.createTransaction("12345678", request, currentUserDetails);
         });
-    }
-
-    @Test
-    void createTransaction_shouldFail_whenAmountIsNegative() {
-        // Arrange
-        var request = new CreateTransactionRequest();
-        request.setToAccountNumber("2222");
-        request.setAmount(new BigDecimal("-50.00")); // Invalid amount
-
-        when(accountService.getAccountByAccountNumber("1111", currentUserDetails)).thenReturn(fromAccount);
-        when(accountRepository.findByAccountNumber("2222")).thenReturn(Optional.of(toAccount));
-
-        // Act & Assert
-        assertThrows(IllegalStateException.class, () -> {
-            transactionService.createTransaction("1111", request, currentUserDetails);
-        }, "Transaction amount must be positive.");
     }
 }

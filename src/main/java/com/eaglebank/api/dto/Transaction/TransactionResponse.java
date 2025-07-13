@@ -12,9 +12,10 @@ import java.time.Instant;
 @Builder
 public class TransactionResponse {
     private String id;
+    private String userId;
     private TransactionType type;
     private BigDecimal amount;
     private String currency;
-    private String description;
+    private String reference;
     private Instant createdTimestamp;
 }

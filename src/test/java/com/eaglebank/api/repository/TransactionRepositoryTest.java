@@ -56,7 +56,7 @@ class TransactionRepositoryTest {
     private Transaction createTransaction(String description, String amount) {
         Transaction tx = new Transaction();
         tx.setAccount(testAccount);
-        tx.setType(TransactionType.DEBIT);
+        tx.setType(TransactionType.DEPOSIT);
         tx.setAmount(new BigDecimal(amount));
         tx.setCurrency("GBP");
         tx.setDescription(description);

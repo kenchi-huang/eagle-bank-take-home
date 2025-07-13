@@ -1,6 +1,7 @@
 package com.eaglebank.api.service.Impl;
 
 import com.eaglebank.api.dto.Transaction.CreateTransactionRequest;
+import com.eaglebank.api.exception.InsufficientFundsException;
 import com.eaglebank.api.model.Account.Account;
 import com.eaglebank.api.model.Transaction.Transaction;
 import com.eaglebank.api.model.Transaction.TransactionType;
@@ -8,13 +9,13 @@ import com.eaglebank.api.repository.AccountRepository;
 import com.eaglebank.api.repository.TransactionRepository;
 import com.eaglebank.api.service.AccountService;
 import com.eaglebank.api.service.TransactionService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.MissingResourceException;
 
 @Service
 @RequiredArgsConstructor
@@ -25,45 +26,37 @@ public class TransactionServiceImpl implements TransactionService {
     private final AccountService accountService; // Reuse for authorization and fetching
 
     @Override
-    public Transaction createTransaction(String accountNumber, CreateTransactionRequest request, UserDetails currentUser) {
-        Account fromAccount = accountService.getAccountByAccountNumber(accountNumber, currentUser);
-
-        Account toAccount = accountRepository.findByAccountNumber(request.getToAccountNumber())
-                .orElseThrow(() -> new MissingResourceException("Destination Account not found", "Account", request.toString()));
-
+    @Transactional
+    public Transaction createTransaction(String accountNumber, CreateTransactionRequest request, UserDetails currentUser) throws InsufficientFundsException {
+        Account account = accountService.getAccountByAccountNumber(accountNumber, currentUser);
         BigDecimal amount = request.getAmount();
 
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("Amount must be greater than zero");
+        if (TransactionType.DEPOSIT.toString().equalsIgnoreCase(request.getType())) {
+            account.setBalance(account.getBalance().add(amount));
+        } else if (TransactionType.WITHDRAWAL.toString().equalsIgnoreCase(request.getType())) {
+            if (account.getBalance().compareTo(amount) < 0) {
+                throw new InsufficientFundsException("Insufficient funds for this withdrawal.");
+            }
+            account.setBalance(account.getBalance().subtract(amount));
+        } else {
+            throw new IllegalArgumentException("Invalid transaction type specified.");
         }
 
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
-            throw new IllegalStateException("Insufficient funds");
-        }
+        Transaction transaction = new Transaction();
+        transaction.setAccount(account);
+        transaction.setType(
+                TransactionType.WITHDRAWAL.toString().equalsIgnoreCase(request.getType()) ? 
+                        TransactionType.WITHDRAWAL : 
+                        TransactionType.DEPOSIT
+        );
+        transaction.setAmount(amount);
+        transaction.setCurrency(request.getCurrency());
+        transaction.setDescription(request.getReference());
 
-        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
-        toAccount.setBalance(toAccount.getBalance().add(amount));
+        transactionRepository.save(transaction);
+        accountRepository.save(account);
 
-        Transaction debitTransaction = new Transaction();
-        debitTransaction.setAccount(fromAccount);
-        debitTransaction.setType(TransactionType.DEBIT);
-        debitTransaction.setAmount(amount);
-        debitTransaction.setCurrency(fromAccount.getCurrency());
-        debitTransaction.setDescription("Transfer to: " + toAccount.getAccountNumber());
-        transactionRepository.save(debitTransaction);
-
-        Transaction creditTransaction = new Transaction();
-        creditTransaction.setAccount(toAccount);
-        creditTransaction.setType(TransactionType.CREDIT);
-        creditTransaction.setAmount(amount);
-        creditTransaction.setCurrency(fromAccount.getCurrency());
-        creditTransaction.setDescription("Transfer from: " + fromAccount.getAccountNumber());
-        transactionRepository.save(creditTransaction);
-
-        accountRepository.save(fromAccount);
-        accountRepository.save(toAccount);
-
-        return debitTransaction;
+        return transaction;
     }
 
     @Override

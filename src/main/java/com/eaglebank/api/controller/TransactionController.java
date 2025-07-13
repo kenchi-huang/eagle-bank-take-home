@@ -1,7 +1,9 @@
 package com.eaglebank.api.controller;
 
 import com.eaglebank.api.dto.Transaction.CreateTransactionRequest;
+import com.eaglebank.api.dto.Transaction.ListTransactionsResponse;
 import com.eaglebank.api.dto.Transaction.TransactionResponse;
+import com.eaglebank.api.exception.InsufficientFundsException;
 import com.eaglebank.api.mapper.TransactionMapper;
 import com.eaglebank.api.model.Transaction.Transaction;
 import com.eaglebank.api.service.TransactionService;
@@ -27,13 +29,13 @@ public class TransactionController {
             @PathVariable String accountNumber,
             @RequestBody CreateTransactionRequest request,
             @AuthenticationPrincipal UserDetails currentUser
-    ) {
+    ) throws InsufficientFundsException {
         Transaction transaction = transactionService.createTransaction(accountNumber, request, currentUser);
         return new ResponseEntity<>(transactionMapper.toResponse(transaction), HttpStatus.CREATED);
     }
 
     @GetMapping()
-    public ResponseEntity<List<TransactionResponse>> getTransactions(
+    public ResponseEntity<ListTransactionsResponse> getTransactions(
             @PathVariable String accountNumber,
             @AuthenticationPrincipal UserDetails currentUser
     ) {
