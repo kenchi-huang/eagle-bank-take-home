@@ -10,4 +10,5 @@ import java.util.List;
 public interface TransactionService {
     Transaction createTransaction(String accountNumber, CreateTransactionRequest request, UserDetails currentUser) throws InsufficientFundsException;
     List<Transaction> getTransactionsForAccount(String accountNumber, UserDetails currentUser);
+    Transaction getTransactionById(String transactionId, String accountNumber, UserDetails currentUser);
 }

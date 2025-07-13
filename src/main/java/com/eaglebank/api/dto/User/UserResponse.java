@@ -14,6 +14,6 @@ public class UserResponse {
     private String email;
     private Address address;
     private String phoneNumber;
-    private Instant created;
-    private Instant lastUpdated;
+    private Instant createdTimestamp;
+    private Instant updatedTimestamp;
 }

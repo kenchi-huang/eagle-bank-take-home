@@ -17,8 +17,8 @@ public class UserMapper {
                 .address(user.getAddress())
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
-                .created(user.getCreatedTimestamp())
-                .lastUpdated(user.getUpdatedTimestamp())
+                .createdTimestamp(user.getCreatedTimestamp())
+                .updatedTimestamp(user.getUpdatedTimestamp())
                 .build();
     }
 }

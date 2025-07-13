@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.MissingResourceException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -129,5 +130,35 @@ class TransactionControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnprocessableEntity()) // 422
                 .andExpect(jsonPath("$.message").value(errorMessage));
+    }
+
+    @Test
+    @WithMockUser(username = "test@example.com")
+    void getTransactionById_shouldReturn200_whenTransactionExists() throws Exception {
+        // Arrange
+        var transaction = new Transaction();
+        transaction.setId("txn-abc");
+        var responseDto = TransactionResponse.builder().id("txn-abc").build();
+
+        when(transactionService.getTransactionById(eq("txn-abc"), eq("12345"), any())).thenReturn(transaction);
+        when(transactionMapper.toResponse(transaction)).thenReturn(responseDto);
+
+        // Act & Assert
+        mockMvc.perform(get("/v1/accounts/12345/transactions/txn-abc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("txn-abc"));
+    }
+
+    @Test
+    @WithMockUser(username = "test@example.com")
+    void getTransactionById_shouldReturn404_whenTransactionDoesNotExist() throws Exception {
+        // Arrange
+        // Mock the service to throw the exception that the global handler will catch
+        when(transactionService.getTransactionById(eq("txn-nonexistent"), eq("12345"), any()))
+                .thenThrow(new MissingResourceException("Transaction not found", "Transaction", "txn-nonexistent"));
+
+        // Act & Assert
+        mockMvc.perform(get("/v1/accounts/12345/transactions/txn-nonexistent"))
+                .andExpect(status().isNotFound());
     }
 }

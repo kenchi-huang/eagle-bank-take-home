@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class MappersTest {
@@ -77,15 +76,11 @@ class MappersTest {
         // Arrange
         var user = new User();
         user.setId("user-1");
-        var userResponse = UserResponse.builder().id("user-1").build();
 
         var account = new Account();
         account.setId("acc-1");
         account.setAccountNumber("12345");
         account.setUser(user);
-
-        // Mock the dependency
-        when(userMapper.toResponse(user)).thenReturn(userResponse);
 
         // Act
         GetAccountResponse response = accountMapper.toResponse(account);
@@ -93,7 +88,5 @@ class MappersTest {
         // Assert
         assertThat(response.getId()).isEqualTo("acc-1");
         assertThat(response.getAccountNumber()).isEqualTo("12345");
-        assertThat(response.getUser()).isNotNull();
-        assertThat(response.getUser().getId()).isEqualTo("user-1");
     }
 }

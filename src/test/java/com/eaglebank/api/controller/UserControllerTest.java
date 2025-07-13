@@ -82,8 +82,8 @@ class UserControllerTest {
                     .email(user.getEmail())
                     .address(user.getAddress())
                     .phoneNumber(user.getPhoneNumber())
-                    .created(user.getCreatedTimestamp())
-                    .lastUpdated(user.getUpdatedTimestamp())
+                    .createdTimestamp(user.getCreatedTimestamp())
+                    .updatedTimestamp(user.getUpdatedTimestamp())
                     .build();
         });
     }

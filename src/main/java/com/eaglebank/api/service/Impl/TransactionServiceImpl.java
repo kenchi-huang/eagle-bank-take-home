@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.MissingResourceException;
 
 @Service
 @RequiredArgsConstructor
@@ -31,24 +32,28 @@ public class TransactionServiceImpl implements TransactionService {
         Account account = accountService.getAccountByAccountNumber(accountNumber, currentUser);
         BigDecimal amount = request.getAmount();
 
-        if (TransactionType.DEPOSIT.toString().equalsIgnoreCase(request.getType())) {
-            account.setBalance(account.getBalance().add(amount));
-        } else if (TransactionType.WITHDRAWAL.toString().equalsIgnoreCase(request.getType())) {
-            if (account.getBalance().compareTo(amount) < 0) {
-                throw new InsufficientFundsException("Insufficient funds for this withdrawal.");
-            }
-            account.setBalance(account.getBalance().subtract(amount));
-        } else {
-            throw new IllegalArgumentException("Invalid transaction type specified.");
+        TransactionType transactionType;
+        try {
+            transactionType = TransactionType.valueOf(request.getType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid transaction type specified. Must be 'DEPOSIT' or 'WITHDRAWAL'.");
+        }
+
+        switch (transactionType) {
+            case DEPOSIT:
+                account.setBalance(account.getBalance().add(amount));
+                break;
+            case WITHDRAWAL:
+                if (account.getBalance().compareTo(amount) < 0) {
+                    throw new InsufficientFundsException("Insufficient funds for this withdrawal.");
+                }
+                account.setBalance(account.getBalance().subtract(amount));
+                break;
         }
 
         Transaction transaction = new Transaction();
         transaction.setAccount(account);
-        transaction.setType(
-                TransactionType.WITHDRAWAL.toString().equalsIgnoreCase(request.getType()) ? 
-                        TransactionType.WITHDRAWAL : 
-                        TransactionType.DEPOSIT
-        );
+        transaction.setType(transactionType);
         transaction.setAmount(amount);
         transaction.setCurrency(request.getCurrency());
         transaction.setDescription(request.getReference());
@@ -63,5 +68,13 @@ public class TransactionServiceImpl implements TransactionService {
     public List<Transaction> getTransactionsForAccount(String accountNumber, UserDetails currentUser) {
         Account account = accountService.getAccountByAccountNumber(accountNumber, currentUser);
         return transactionRepository.findByAccountOrderByCreatedTimestampDesc(account);
+    }
+
+    @Override
+    public Transaction getTransactionById(String transactionId, String accountNumber, UserDetails currentUser) {
+        accountService.getAccountByAccountNumber(accountNumber, currentUser);
+        return transactionRepository.findById(transactionId)
+                .filter(transaction -> transaction.getAccount().getAccountNumber().equals(accountNumber))
+                .orElseThrow(() -> new MissingResourceException("Transaction not found", "Transaction", transactionId));
     }
 }
