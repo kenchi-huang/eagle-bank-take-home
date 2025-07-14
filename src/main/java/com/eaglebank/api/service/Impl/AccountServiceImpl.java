@@ -63,13 +63,11 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account updateAccount(String accountNumber, UpdateAccountRequest request, UserDetails currentUser) {
-        // This reuses the authorization check from getAccountByAccountNumber
         Account accountToUpdate = getAccountByAccountNumber(accountNumber, currentUser);
 
         if (StringUtils.hasText(request.getName())) {
             accountToUpdate.setName(request.getName());
         }
-        // The spec only allows updating the name, but you could add other fields here.
 
         return accountRepository.save(accountToUpdate);
     }
@@ -80,7 +78,6 @@ public class AccountServiceImpl implements AccountService {
         if (accountToDelete.getBalance().compareTo(BigDecimal.ZERO) != 0) {
             throw new IllegalStateException("Cannot delete account with non-zero balance.");
         }
-        // Add business logic here if needed (e.g., check for zero balance before deleting)
         accountRepository.delete(accountToDelete);
     }
 
