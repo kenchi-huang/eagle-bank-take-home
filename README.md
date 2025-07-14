@@ -1,4 +1,4 @@
-Eagle Bank API
+# Eagle Bank API
 
 This project is a RESTful API for a modern banking application, built with Spring Boot. It provides a secure, robust, and well-tested backend for managing users, accounts, and financial transactions.
 
