@@ -24,7 +24,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
-    private final AccountService accountService; // Reuse for authorization and fetching
+    private final AccountService accountService; // Reuse for authorisation and fetching
 
     @Override
     @Transactional
